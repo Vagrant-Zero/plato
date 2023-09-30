@@ -1,13 +1,15 @@
 package ipconf
 
 import (
+	"github.com/hardcore-os/plato/common/config"
 	"github.com/hardcore-os/plato/ipconf/domain"
 	"github.com/hardcore-os/plato/ipconf/source"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
-func RunMain() {
+func RunMain(path string) {
+	config.Init(path)
 	// 启动数据源
 	source.Init()
 	// 初始化调度层

@@ -4,10 +4,9 @@ import (
 	"context"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"sync"
-	"time"
-
+	"github.com/hardcore-os/plato/common/config"
 	"go.etcd.io/etcd/clientv3"
+	"sync"
 )
 
 // ServiceDiscovery 服务发现
@@ -18,10 +17,10 @@ type ServiceDiscovery struct {
 }
 
 // NewServiceDiscovery  新建发现服务
-func NewServiceDiscovery(ctx *context.Context, endpoints []string) *ServiceDiscovery {
+func NewServiceDiscovery(ctx *context.Context) *ServiceDiscovery {
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
-		DialTimeout: 5 * time.Second,
+		Endpoints:   config.GetEndpointsForDiscovery(),
+		DialTimeout: config.GetTimeoutForDiscovery(),
 	})
 	if err != nil {
 		// log.error and then exist with 1
@@ -55,9 +54,9 @@ func (s *ServiceDiscovery) watcher(prefix string, set, del func(key, value strin
 		for _, ev := range wresp.Events {
 			switch ev.Type {
 			case mvccpb.PUT: //修改或者新增
-				set(string(ev.Kv.Key), string(ev.Kv.Key))
+				set(string(ev.Kv.Key), string(ev.Kv.Value))
 			case mvccpb.DELETE: //删除
-				del(string(ev.Kv.Key), string(ev.Kv.Key))
+				del(string(ev.Kv.Key), string(ev.Kv.Value))
 			}
 		}
 	}
