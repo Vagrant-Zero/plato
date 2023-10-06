@@ -10,6 +10,7 @@ require (
 	github.com/bytedance/gopkg v0.0.0-20230728082804-614d0af6619b
 	github.com/cloudwego/hertz v0.7.0
 	github.com/gookit/color v1.5.1
+	github.com/panjf2000/ants v1.2.1
 	github.com/rocket049/gocui v0.3.2
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.16.0
@@ -75,7 +76,7 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.11.0
 	golang.org/x/text v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230711160842-782d3b101e98 // indirect

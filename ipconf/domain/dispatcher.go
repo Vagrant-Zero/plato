@@ -75,10 +75,10 @@ func (d *Dispatcher) AddNode(event *source.Event) {
 	)
 	if ed, ok = d.candidatePool[event.Key()]; !ok { // not exist, then create EndPort
 		ed = NewEndport(event.IP, event.Port)
+		dp.candidatePool[event.Key()] = ed
 	}
 	ed.UpdateStat(&Stat{
 		ConnectNum:   event.ConnectNum,
 		MessageBytes: event.MessageBytes,
 	})
-	dp.candidatePool[event.Key()] = ed
 }
