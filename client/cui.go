@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"github.com/hardcore-os/plato/common/sdk"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gookit/color"
-	"github.com/hardcore-os/plato/client/sdk"
 	"github.com/rocket049/gocui"
 )
 

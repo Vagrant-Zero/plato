@@ -2,9 +2,11 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/hardcore-os/plato/common/config"
 	"github.com/hardcore-os/plato/common/tcp"
+	"io"
 	"net"
 )
 
@@ -21,10 +23,14 @@ func RunMain(path string) {
 	select {}
 }
 
-func runProc(conn *net.TCPConn, ep *epoller) {
+func runProc(c *connection, ep *epoller) {
 	// step1: 读取一个完整的消息包
-	dataBuf, err := tcp.ReadData(conn)
+	dataBuf, err := tcp.ReadData(c.conn)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			logger.CtxInfof(context.Background(), "connection[%v] closed", c.RemoteAddr())
+			ep.remove(c)
+		}
 		return
 	}
 	err = wPool.Submit(func() {
@@ -33,7 +39,7 @@ func runProc(conn *net.TCPConn, ep *epoller) {
 			Len:  uint32(len(dataBuf)),
 			Data: dataBuf,
 		}
-		tcp.SendData(conn, bytes.Marshal())
+		tcp.SendData(c.conn, bytes.Marshal())
 	})
 
 	if err != nil {

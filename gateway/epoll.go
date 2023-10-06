@@ -22,38 +22,40 @@ var (
 )
 
 type ePool struct {
-	eChan chan *net.TCPConn
-	eSize int
-	done  chan struct{}
+	eChan  chan *connection
+	tables sync.Map
+	eSize  int
+	done   chan struct{}
 
 	ln *net.TCPListener
-	f  func(conn *net.TCPConn, ep *epoller) // callback func
+	f  func(conn *connection, ep *epoller) // callback func
 }
 
-func InitEpoll(ln *net.TCPListener, f func(conn *net.TCPConn, ep *epoller)) {
+func InitEpoll(ln *net.TCPListener, f func(conn *connection, ep *epoller)) {
 	setLimit()
 	ep = NewEpoll(ln, f)
 	ep.createAcceptProcess()
 	ep.startEPoll()
 }
 
-func NewEpoll(ln *net.TCPListener, callback func(conn *net.TCPConn, ep *epoller)) *ePool {
+func NewEpoll(ln *net.TCPListener, callback func(conn *connection, ep *epoller)) *ePool {
 	return &ePool{
-		eChan: make(chan *net.TCPConn, config.GetGatewayEpollerChanNum()),
-		done:  make(chan struct{}),
-		eSize: config.GetGatewayEpollerNum(),
-		ln:    ln,
-		f:     callback,
+		eChan:  make(chan *connection, config.GetGatewayEpollerChanNum()),
+		done:   make(chan struct{}),
+		eSize:  config.GetGatewayEpollerNum(),
+		tables: sync.Map{},
+		ln:     ln,
+		f:      callback,
 	}
 }
 
 // createAcceptProcess 创建一个专门处理 accept 事件的协程，与当前cpu的核数对应，能够发挥最大功效
-func (ep *ePool) createAcceptProcess() {
+func (e *ePool) createAcceptProcess() {
 	for i := 0; i < runtime.NumCPU(); i++ {
 		go func() {
 			ctx := context.Background()
 			for {
-				conn, err := ep.ln.AcceptTCP()
+				conn, err := e.ln.AcceptTCP()
 				// 限流熔断
 				if !checkTcp() {
 					_ = conn.Close()
@@ -67,21 +69,25 @@ func (ep *ePool) createAcceptProcess() {
 					}
 					fmt.Errorf("accept error: %v", err)
 				}
-				ep.addTask(conn)
+				c := &connection{
+					conn: conn,
+					fd:   socketFD(conn),
+				}
+				ep.addTask(c)
 			}
 		}()
 	}
 }
 
-func (ep *ePool) startEPoll() {
-	for i := 0; i < ep.eSize; i++ {
-		go ep.startEProc(i)
+func (e *ePool) startEPoll() {
+	for i := 0; i < e.eSize; i++ {
+		go e.startEProc(i)
 	}
 }
 
 // startEProc 轮询器池 处理器
 // epoll 的监听和处理逻辑
-func (ep *ePool) startEProc(id int) {
+func (e *ePool) startEProc(id int) {
 	epl, err := NewEpoller(id)
 	if err != nil {
 		panic(err)
@@ -91,17 +97,17 @@ func (ep *ePool) startEProc(id int) {
 	go func() {
 		for {
 			select {
-			case <-ep.done:
+			case <-e.done:
 				return
-			case conn := <-ep.eChan:
+			case conn := <-e.eChan:
 				// supply logs in below method
 				addTcpNum()
 				if addConnErr := epl.add(conn); addConnErr != nil {
-					logger.CtxErrorf(ctx, "epoll_%d failed to add connection %v\n", id, err)
+					logger.CtxErrorf(ctx, "epoll_%d failed to add connection %v\n", id, addConnErr)
 					_ = conn.Close()
 					continue
 				}
-				logger.CtxInfof(ctx, "EpollerPool new connection[%v], epoll_%d, tcpSize:%d", (conn).RemoteAddr().String(), id, tcpNum)
+				logger.CtxInfof(ctx, "EpollerPool new connection[%v], epoll_%d, tcpSize:%d", conn.RemoteAddr(), id, tcpNum)
 			}
 		}
 	}()
@@ -109,10 +115,10 @@ func (ep *ePool) startEProc(id int) {
 	// wait for events
 	for {
 		select {
-		case <-ep.done:
+		case <-e.done:
 			return
 		default:
-			connections, waitErr := epl.Wait(200) // 200ms 一次轮询避免 忙轮询
+			connections, waitErr := epl.wait(200) // 200ms 一次轮询避免 忙轮询
 			if waitErr != nil && waitErr != syscall.EINTR {
 				logger.CtxErrorf(ctx, "failed to epoll_%d wait %v\n", id, waitErr)
 				continue
@@ -122,21 +128,20 @@ func (ep *ePool) startEProc(id int) {
 				if conn == nil {
 					break
 				}
-				ep.f(conn, epl)
+				e.f(conn, epl)
 			}
 		}
 	}
 }
 
-func (ep *ePool) addTask(conn *net.TCPConn) {
-	ep.eChan <- conn
+func (e *ePool) addTask(conn *connection) {
+	e.eChan <- conn
 }
 
 // epoller 对象 轮询器
 type epoller struct {
-	connections sync.Map
-	fd          int
-	id          int // id of epoll
+	fd int
+	id int // id of epoll
 }
 
 func NewEpoller(id int) (*epoller, error) {
@@ -145,45 +150,44 @@ func NewEpoller(id int) (*epoller, error) {
 		return nil, err
 	}
 	return &epoller{
-		connections: sync.Map{},
-		fd:          fd,
-		id:          id,
+		fd: fd,
+		id: id,
 	}, nil
 }
 
-func (epl *epoller) add(conn *net.TCPConn) error {
-	fd := socketFD(conn)
+func (epl *epoller) add(conn *connection) error {
+	fd := conn.fd
 	// the fd of epl is the epoll fd
 	// the fd of conn is the connection fd
 	err := unix.EpollCtl(epl.fd, syscall.EPOLL_CTL_ADD, fd, &unix.EpollEvent{Events: unix.EPOLLIN | unix.EPOLLHUP, Fd: int32(fd)})
 	if err != nil {
 		return err
 	}
-	epl.connections.Store(fd, conn)
+	ep.tables.Store(fd, conn)
 	return nil
 }
 
-func (epl *epoller) remove(conn *net.TCPConn) error {
+func (epl *epoller) remove(conn *connection) error {
 	subTcpNum()
-	fd := socketFD(conn)
+	fd := conn.fd
 	err := unix.EpollCtl(epl.fd, syscall.EPOLL_CTL_DEL, fd, nil)
 	if err != nil {
 		return err
 	}
-	epl.connections.Delete(fd)
+	ep.tables.Delete(fd)
 	return nil
 }
 
-func (epl *epoller) Wait(millSec int) ([]*net.TCPConn, error) {
+func (epl *epoller) wait(millSec int) ([]*connection, error) {
 	events := make([]unix.EpollEvent, config.GetGatewayEpollWaitQueueSize())
 	n, err := unix.EpollWait(epl.fd, events, millSec)
 	if err != nil {
 		return nil, err
 	}
-	var connections []*net.TCPConn
+	var connections []*connection
 	for i := 0; i < n; i++ {
-		if conn, ok := epl.connections.Load(int(events[i].Fd)); ok {
-			connections = append(connections, conn.(*net.TCPConn))
+		if conn, ok := ep.tables.Load(int(events[i].Fd)); ok {
+			connections = append(connections, conn.(*connection))
 		}
 	}
 	return connections, nil
