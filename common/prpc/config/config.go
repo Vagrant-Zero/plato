@@ -1,6 +1,8 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"github.com/spf13/viper"
+)
 
 // GetDiscovName 获取discov用哪种方式实现
 func GetDiscovName() string {

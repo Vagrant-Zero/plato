@@ -3,9 +3,9 @@ package discovery
 import (
 	"context"
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/hardcore-os/plato/common/config"
-	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"sync"
 )
 

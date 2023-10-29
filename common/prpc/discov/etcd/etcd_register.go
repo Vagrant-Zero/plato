@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/hardcore-os/plato/common/prpc/discov"
-	"go.etcd.io/etcd/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"strconv"
 	"strings"
 	"sync"
