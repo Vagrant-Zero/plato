@@ -131,12 +131,7 @@ func (p *PServer) Start(ctx context.Context) {
 		serverinterceptor.MetricUnaryServerInterceptor(p.serviceName),
 	}
 	interceptors = append(interceptors, p.interceptors...)
-	s := grpc.NewServer(
-		grpc.UnaryInterceptor(serverinterceptor.RecoveryUnaryServerInterceptor()),
-		// TODO 多个拦截器怎么处理？
-		//grpc.UnaryInterceptor(serverinterceptor.TraceUnaryServerInterceptor()),
-		//grpc.UnaryInterceptor(serverinterceptor.MetricUnaryServerInterceptor(p.serviceName)),
-	)
+	s := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors...))
 
 	// 注册服务
 	for _, register := range p.registers {

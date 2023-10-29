@@ -4,6 +4,7 @@ import "time"
 
 var (
 	defaultOption = Options{
+		// TODO replace default endpoints
 		endpoints:              []string{"127.0.0.1:2379"},
 		dialTimeout:            10 * time.Second,
 		syncFlushCacheInterval: 10 * time.Second,
