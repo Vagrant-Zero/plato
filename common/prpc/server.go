@@ -151,7 +151,7 @@ func (p *PServer) Start(ctx context.Context) {
 	// 服务注册
 	p.d.Register(ctx, &service)
 
-	logger.Info("start PRCP success")
+	logger.Info("start PRPC success")
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)

@@ -52,7 +52,7 @@ func (d *DiscovBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ 
 }
 
 func (d *DiscovBuilder) getServiceName(target resolver.Target) string {
-	return target.Endpoint
+	return target.Endpoint()
 }
 
 func (d *DiscovBuilder) Close() {

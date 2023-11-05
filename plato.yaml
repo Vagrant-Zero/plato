@@ -2,7 +2,7 @@ global:
   env: debug
 discovery:
   endpoints:
-    - localhost:2379
+    - localhost:2379 # 192.168.31.192:2379
   timeout: 5
 ip_conf:
   service_path: /plato/ip_dispatcher
@@ -10,16 +10,27 @@ prpc:
   discov:
     name: etcd
     endpoints:
-      - localhost:2379
+      - localhost:2379 # 192.168.31.192:2379
   trace:
     enable: true
     url: http://127.0.0.1:14268/api/traces
     service_name: plato
     sampler: 1.0
 gateway:
-  tcp_max_num: 10000
+  service_name: "plato.access.gateway"
+  service_addr: "127.0.0.1"
+  tcp_max_num: 70000
   epoll_channel_num: 100
   epoll_num: 8
   epoll_wait_queue_size: 100
-  server_port: 8900
+  tcp_server_port: 8900
+  rpc_server_port: 8901
   worker_pool_num: 1024
+  cmd_channel_num: 2048
+  weight: 100
+state:
+  service_name: "plato.access.state"
+  servide_addr: "127.0.0.1"
+  cmd_channel_num: 2048
+  server_port: 8902
+  weight: 100
