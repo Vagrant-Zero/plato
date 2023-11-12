@@ -4,7 +4,6 @@ go 1.18
 
 replace github.com/coreos/bbolt v1.3.7 => go.etcd.io/bbolt v1.3.7
 
-
 require (
 	github.com/bytedance/gopkg v0.0.0-20230728082804-614d0af6619b
 	github.com/cloudwego/hertz v0.7.0
@@ -77,12 +76,13 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
+	go.uber.org/zap v1.26.0
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sys v0.12.0
 	golang.org/x/text v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.31.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

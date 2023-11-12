@@ -2,7 +2,7 @@ global:
   env: debug
 discovery:
   endpoints:
-    - localhost:2379 # 192.168.31.192:2379
+    - 192.168.31.192:2379 # 192.168.31.192:2379
   timeout: 5
 ip_conf:
   service_path: /plato/ip_dispatcher
@@ -10,7 +10,7 @@ prpc:
   discov:
     name: etcd
     endpoints:
-      - localhost:2379 # 192.168.31.192:2379
+      - 192.168.31.192:2379 # 192.168.31.192:2379
   trace:
     enable: true
     url: http://127.0.0.1:14268/api/traces
