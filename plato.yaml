@@ -29,7 +29,7 @@ gateway:
   cmd_channel_num: 2048
   weight: 100
 state:
-  service_name: "plato.access.message"
+  service_name: "plato.access.state"
   servide_addr: "127.0.0.1"
   cmd_channel_num: 2048
   server_port: 8902

@@ -36,7 +36,9 @@ func RunMain(path string) {
 	// start cmd handler
 	go cmdHandler()
 	// start rpc server
-	s.Start(context.TODO())
+	ctx := context.TODO()
+	logger.CtxInfof(ctx, "[state] serviceName:%s Addr:%s:%d weight:%d", config.GetStateServiceName(), config.GetStateServiceAddr(), config.GetStateServerPort(), config.GetStateRPCWeight())
+	s.Start(ctx)
 }
 
 func cmdHandler() {

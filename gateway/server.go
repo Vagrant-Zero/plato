@@ -47,7 +47,7 @@ func startRPCServer() {
 		prpc.WithPort(config.GetGatewayRPCServerPort()),
 		prpc.WithWeight(config.GetGatewayRPCWeight()),
 	)
-	logger.CtxInfof(ctx, "serviceName:%s Addr:%s:%d weight:%d", config.GetGatewayServiceName(), config.GetGatewayServiceAddr(), config.GetGatewayRPCServerPort(), config.GetGatewayRPCWeight())
+	logger.CtxInfof(ctx, "[gateway] serviceName:%s Addr:%s:%d weight:%d", config.GetGatewayServiceName(), config.GetGatewayServiceAddr(), config.GetGatewayRPCServerPort(), config.GetGatewayRPCWeight())
 	s.RegisterService(func(server *grpc.Server) {
 		service.RegisterGatewayServer(server, &service.Service{CmdChannel: cmdChannel})
 	})
