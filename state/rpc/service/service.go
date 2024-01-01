@@ -14,8 +14,8 @@ type CmdContext struct {
 	Ctx      *context.Context
 	Cmd      int32
 	Endpoint string
-	FD       int
-	PlayLoad []byte
+	ConnID   uint64
+	PayLoad  []byte
 }
 
 type Service struct {
@@ -29,7 +29,7 @@ func (s *Service) CancelConn(ctx context.Context, sr *StateRequest) (*StateRespo
 		Ctx:      &c,
 		Cmd:      CancelConnCmd,
 		Endpoint: sr.GetEndpoint(),
-		FD:       int(sr.GetFd()),
+		ConnID:   sr.GetConnID(),
 	}
 
 	return &StateResponse{
@@ -39,17 +39,17 @@ func (s *Service) CancelConn(ctx context.Context, sr *StateRequest) (*StateRespo
 }
 
 func (s *Service) SendMsg(ctx context.Context, sr *StateRequest) (*StateResponse, error) {
-	logger.CtxInfof(ctx, "[state] receive SendMsg request ok")
+	logger.CtxInfof(ctx, "[message] receive SendMsg request ok")
 	c := context.TODO()
 	s.CmdChannel <- &CmdContext{
 		Ctx:      &c,
 		Cmd:      SendMsgCmd,
-		FD:       int(sr.GetFd()),
+		ConnID:   sr.GetConnID(),
 		Endpoint: sr.GetEndpoint(),
-		PlayLoad: sr.GetData(),
+		PayLoad:  sr.GetData(),
 	}
 
-	logger.CtxInfof(ctx, "[state] sendMsg to channel ok")
+	logger.CtxInfof(ctx, "[message] sendMsg to channel ok")
 
 	return &StateResponse{
 		Code: 0,

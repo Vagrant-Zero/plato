@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v3.19.4
-// source: state.proto
+// source: message.proto
 
 package service
 
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	State_CancelConn_FullMethodName = "/service.state/CancelConn"
-	State_SendMsg_FullMethodName    = "/service.state/SendMsg"
+	State_CancelConn_FullMethodName = "/service.message/CancelConn"
+	State_SendMsg_FullMethodName    = "/service.message/SendMsg"
 )
 
 // StateClient is the client API for State service.
@@ -129,7 +129,7 @@ func _State_SendMsg_Handler(srv interface{}, ctx context.Context, dec func(inter
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var State_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "service.state",
+	ServiceName: "service.message",
 	HandlerType: (*StateServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -142,5 +142,5 @@ var State_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "state.proto",
+	Metadata: "message.proto",
 }

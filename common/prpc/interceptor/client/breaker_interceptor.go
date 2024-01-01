@@ -28,7 +28,7 @@ func BreakerUnaryClientInterceptor(name string, maxRequest uint32, interval, tim
 			}
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			logger.Errorf("name:%s,old state:%s,new state:%s", name, from, to)
+			logger.Errorf("name:%s,old message:%s,new message:%s", name, from, to)
 		},
 	})
 

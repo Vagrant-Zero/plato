@@ -67,13 +67,13 @@ func runProc(c *connection, ep *epoller) {
 		if errors.Is(err, io.EOF) {
 			logger.CtxInfof(context.Background(), "connection[%v] closed", c.RemoteAddr())
 			ep.remove(c)
-			client.CancelConn(&ctx, getEndpoint(), int32(c.fd), nil)
+			client.CancelConn(&ctx, getEndpoint(), c.id, nil)
 		}
 		return
 	}
 	err = wPool.Submit(func() {
-		// step2:交给 state server rpc 处理
-		client.SendMsg(&ctx, getEndpoint(), int32(c.fd), dataBuf)
+		// step2:交给 message server rpc 处理
+		client.SendMsg(&ctx, getEndpoint(), c.id, dataBuf)
 	})
 
 	if err != nil {
@@ -104,10 +104,9 @@ func closeConn(cmd *service.CmdContext) {
 	if cmdChannel == nil {
 		return
 	}
-	if connPtr, ok := ep.tables.Load(cmd.FD); ok {
+	if connPtr, ok := ep.tables.Load(cmd.ConnID); ok {
 		conn, _ := connPtr.(*connection)
 		conn.Close()
-		ep.tables.Delete(cmd.FD)
 	}
 }
 
@@ -115,11 +114,11 @@ func sendMsgByCmd(cmd *service.CmdContext) {
 	if cmdChannel == nil {
 		return
 	}
-	if connPtr, ok := ep.tables.Load(cmd.FD); ok {
+	if connPtr, ok := ep.tables.Load(cmd.ConnID); ok {
 		conn, _ := connPtr.(*connection)
 		dp := tcp.DataPgk{
-			Len:  uint32(len(cmd.PlayLoad)),
-			Data: cmd.PlayLoad,
+			Len:  uint32(len(cmd.PayLoad)),
+			Data: cmd.PayLoad,
 		}
 		tcp.SendData(conn.conn, dp.Marshal())
 	}

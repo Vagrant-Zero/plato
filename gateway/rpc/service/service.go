@@ -8,10 +8,10 @@ const (
 )
 
 type CmdContext struct {
-	Ctx      *context.Context
-	Cmd      int32
-	FD       int
-	PlayLoad []byte
+	Ctx     *context.Context
+	Cmd     int32
+	ConnID  uint64
+	PayLoad []byte
 }
 
 type Service struct {
@@ -22,9 +22,9 @@ type Service struct {
 func (s *Service) DelConn(ctx context.Context, gr *GatewayRequest) (*GatewayResponse, error) {
 	c := context.TODO()
 	s.CmdChannel <- &CmdContext{
-		Ctx: &c,
-		Cmd: DelConnCmd,
-		FD:  int(gr.GetFd()),
+		Ctx:    &c,
+		Cmd:    DelConnCmd,
+		ConnID: gr.GetConnID(),
 	}
 	return &GatewayResponse{
 		Code: 0,
@@ -35,10 +35,10 @@ func (s *Service) DelConn(ctx context.Context, gr *GatewayRequest) (*GatewayResp
 func (s *Service) Push(ctx context.Context, gr *GatewayRequest) (*GatewayResponse, error) {
 	c := context.TODO()
 	s.CmdChannel <- &CmdContext{
-		Ctx:      &c,
-		Cmd:      PushCmd,
-		FD:       int(gr.GetFd()),
-		PlayLoad: gr.GetData(),
+		Ctx:     &c,
+		Cmd:     PushCmd,
+		ConnID:  gr.GetConnID(),
+		PayLoad: gr.GetData(),
 	}
 	return &GatewayResponse{
 		Code: 0,

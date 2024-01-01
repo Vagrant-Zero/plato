@@ -91,7 +91,7 @@ type DelayQueue struct {
 	mu sync.Mutex
 	pq priorityQueue
 
-	// Similar to the sleeping state of runtime.timers
+	// Similar to the sleeping message of runtime.timers
 	sleeping int32
 	wakeupC  chan struct{}
 }
@@ -157,7 +157,7 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 				case <-time.After(time.Duration(delta) * time.Millisecond):
 					// The current "earliest" item expires.
 
-					// Reset the sleeping state since there's no need to receive from wakeupC.
+					// Reset the sleeping message since there's no need to receive from wakeupC.
 					if atomic.SwapInt32(&dq.sleeping, 0) == 0 {
 						// A caller of Offer() is being blocked on sending to wakeupC,
 						// drain wakeupC to unblock the caller.
