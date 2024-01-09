@@ -33,21 +33,6 @@ func newConnet(ip net.IP, port int, connID uint64) *connect {
 		clientConn.connID = connID
 	}
 	return clientConn
-	//go func() {
-	//	for {
-	//		data, err := tcp.ReadData(conn)
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//		msg := &Message{}
-	//		err = json.Unmarshal(data, msg)
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//		clientConn.recvChan <- msg
-	//	}
-	//}()
-	//return clientConn
 }
 
 func handAckMsg(c *connect, data []byte) *Message {
