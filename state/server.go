@@ -72,6 +72,10 @@ func msgCmdHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 		heartbeatMsgHandler(cmdCtx, msgCmd)
 	case message.CmdType_ReConn:
 		reConnMsgHandler(cmdCtx, msgCmd)
+	case message.CmdType_UP:
+		upMsgHandler(cmdCtx, msgCmd)
+	case message.CmdType_ACK:
+		ackMsgHandler(cmdCtx, msgCmd)
 	}
 }
 
@@ -94,7 +98,7 @@ func loginMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 
 	// init conn message
 	connToStateTable.Store(cmdCtx.ConnID, &connState{heartTimer: t, connID: cmdCtx.ConnID})
-	sendAckMsg(cmdCtx.ConnID, 0, "login")
+	sendAckMsg(message.CmdType_Login, cmdCtx.ConnID, 0, 0, "login")
 }
 
 func heartbeatMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
@@ -134,30 +138,98 @@ func reConnMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 		// 变更connID, cmdCtx中的connID才是 gateway重连的新连接
 		state.connID = cmdCtx.ConnID
 		connToStateTable.Store(state.connID, state)
-		sendAckMsg(cmdCtx.ConnID, 0, "reconn ok")
+		sendAckMsg(message.CmdType_ReConn, cmdCtx.ConnID, 0, 0, "reconn ok")
 	} else {
-		sendAckMsg(cmdCtx.ConnID, 1, "reconn failed")
+		sendAckMsg(message.CmdType_ReConn, cmdCtx.ConnID, 0, 1, "reconn failed")
 	}
 }
 
-func sendAckMsg(connID uint64, code uint32, msg string) {
+func sendAckMsg(ackType message.CmdType, connID, clientID uint64, code uint32, msg string) {
 	ackMsg := &message.ACKMsg{}
 	ackMsg.Code = code
 	ackMsg.Msg = msg
 	ackMsg.ConnID = connID
+	ackMsg.Type = ackType
+	ackMsg.ClientID = clientID
 	ctx := context.TODO()
 	downLoad, err := proto.Marshal(ackMsg)
 	if err != nil {
-		logger.CtxErrorf(ctx, "sendMsg err=%s, connID=%v, code=%v, msg=%v", err, connID, code, msg)
+		logger.CtxErrorf(ctx, "sendAckMsg err=%s, connID=%v, code=%v, msg=%v", err, connID, code, msg)
 		return
 	}
+	sendMsg(connID, message.CmdType_ACK, downLoad)
+}
+
+func sendMsg(connID uint64, ty message.CmdType, download []byte) {
 	mc := &message.MsgCmd{}
-	mc.Type = message.CmdType_ACK
-	mc.Payload = downLoad
+	mc.Type = ty
+	mc.Payload = download
 	data, err := proto.Marshal(mc)
+	ctx := context.TODO()
 	if err != nil {
-		logger.CtxErrorf(ctx, "sendMsg err=%s, connID=%v, code=%v, msg=%v", err, connID, code, msg)
+		logger.CtxErrorf(ctx, "sendMsg err=%s, connID=%v, ty=%v, msg=%v", err, connID, ty, string(download))
 		return
 	}
 	client.Push(&ctx, connID, data)
+}
+
+// 处理下行消息
+func ackMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
+	ackMsg := &message.ACKMsg{}
+	err := proto.Unmarshal(msgCmd.Payload, ackMsg)
+	if err != nil {
+		logger.CtxErrorf(*cmdCtx.Ctx, "ackMsgHandler err=%v", err.Error())
+		return
+	}
+	if data, ok := connToStateTable.Load(ackMsg.ConnID); ok {
+		state, _ := data.(*connState)
+		state.Lock()
+		defer state.Unlock()
+		if state.msgTimer != nil {
+			state.msgTimer.Stop()
+			state.msgTimer = nil
+		}
+	}
+}
+
+// 处理上行消息，并进行消息可靠性检查
+func upMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
+	upMsg := &message.UPMsg{}
+	err := proto.Unmarshal(msgCmd.Payload, upMsg)
+	if err != nil {
+		logger.CtxErrorf(*cmdCtx.Ctx, "upMsgHandler err=%v", err.Error())
+		return
+	}
+	if data, ok := connToStateTable.Load(upMsg.Head.ConnID); ok {
+		state, _ := data.(*connState)
+		if !state.checkUPMsg(upMsg.Head.ClientID) {
+			// todo 如果没有通过检查，当作先直接忽略即可
+			return
+		}
+		// 调用下游业务层rpc，只有当rpc回复成功后才能更新max_clientID
+		// 这里先假设成功
+		state.addMaxClientID()
+		state.msgID++
+		sendAckMsg(message.CmdType_UP, upMsg.Head.ConnID, upMsg.Head.ClientID, 0, "ok")
+
+		// todo 先在这里push消息
+		pushMsg := &message.PushMsg{
+			MsgID:   state.msgID,
+			Content: upMsg.UPMsgBody,
+		}
+		pData, err := proto.Marshal(pushMsg)
+		if err != nil {
+			logger.CtxErrorf(*cmdCtx.Ctx, "upMsgHandler Marshal pushMsg err=%v, pData=%v", err.Error(), string(pData))
+			return
+		}
+		sendMsg(state.connID, message.CmdType_Push, pData)
+		if state.msgTimer != nil {
+			state.msgTimer = nil
+		}
+		// create pushMsg timer
+		t := AfterFunc(100*time.Millisecond, func() {
+			rePush(cmdCtx.ConnID, pData)
+		})
+		state.msgTimer = t
+	}
 }
