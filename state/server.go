@@ -47,7 +47,7 @@ func cmdHandler() {
 		case service.CancelConnCmd:
 			logger.CtxInfof(*cmdCtx.Ctx, "cancelConn endpoint:%s, fd:%d, data:%+v", cmdCtx.Endpoint, cmdCtx.ConnID, cmdCtx.PayLoad)
 		case service.SendMsgCmd:
-			logger.CtxInfof(*cmdCtx.Ctx, "cmdHandler: %v", string(cmdCtx.PayLoad))
+			logger.CtxInfof(*cmdCtx.Ctx, "cmdHandler: %v\n", string(cmdCtx.PayLoad))
 			msgCmd := &message.MsgCmd{}
 			err := proto.Unmarshal(cmdCtx.PayLoad, msgCmd)
 			if err != nil {
@@ -88,7 +88,7 @@ func loginMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 	}
 	if loginMsg.Head != nil {
 		// 这里会把 login msg 传送给业务层做处理
-		logger.CtxInfof(*cmdCtx.Ctx, "loginMsgHandler", loginMsg.Head.DeviceID)
+		logger.CtxInfof(*cmdCtx.Ctx, "loginMsgHandler:%v", loginMsg.Head.DeviceID)
 	}
 
 	// create timer
@@ -98,7 +98,7 @@ func loginMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 
 	// init conn message
 	connToStateTable.Store(cmdCtx.ConnID, &connState{heartTimer: t, connID: cmdCtx.ConnID})
-	sendAckMsg(message.CmdType_Login, cmdCtx.ConnID, 0, 0, "login")
+	sendAckMsg(message.CmdType_Login, cmdCtx.ConnID, 0, 0, "login ok")
 }
 
 func heartbeatMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
@@ -111,6 +111,7 @@ func heartbeatMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 	if data, ok := connToStateTable.Load(cmdCtx.ConnID); ok {
 		state, _ := data.(*connState)
 		state.resetHeartTimer()
+		logger.CtxInfof(*cmdCtx.Ctx, "[heartbeatMsgHandler] reset heartbeat success, connID=%v", cmdCtx.ConnID)
 	}
 	// 减少通信量，可以暂时不回复心跳的ack
 }
@@ -222,9 +223,9 @@ func upMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 			logger.CtxErrorf(*cmdCtx.Ctx, "upMsgHandler Marshal pushMsg err=%v, pData=%v", err.Error(), string(pData))
 			return
 		}
-		sendMsg(state.connID, message.CmdType_Push, pData)
+		sendMsg(upMsg.Head.ConnID, message.CmdType_Push, pData)
 		if state.msgTimer != nil {
-			state.msgTimer = nil
+			state.msgTimer.Stop()
 		}
 		// create pushMsg timer
 		t := AfterFunc(100*time.Millisecond, func() {

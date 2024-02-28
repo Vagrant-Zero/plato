@@ -164,7 +164,7 @@ func (epl *epoller) add(conn *connection) error {
 		return err
 	}
 	epl.fdToConnTable.Store(conn.fd, conn)
-	ep.tables.Store(fd, conn)
+	ep.tables.Store(conn.id, conn)
 	conn.BindEpoller(epl)
 	return nil
 }
@@ -176,7 +176,7 @@ func (epl *epoller) remove(conn *connection) error {
 	if err != nil {
 		return err
 	}
-	ep.tables.Delete(fd)
+	ep.tables.Delete(conn.id)
 	epl.fdToConnTable.Delete(conn.fd)
 	return nil
 }
