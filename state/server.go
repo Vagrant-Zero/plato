@@ -42,31 +42,13 @@ func RunMain(path string) {
 	s.RegisterService(func(server *grpc.Server) {
 		service.RegisterStateServer(server, cs.server)
 	})
-	//cmdChannel = make(chan *service.CmdContext, config.GetStateCmdChannelNum())
-	//connToStateTable = sync.Map{}
-	//
-	//s := prpc.NewPServer(
-	//	prpc.WithServiceName(config.GetStateServiceName()),
-	//	prpc.WithIP(config.GetStateServiceAddr()),
-	//	prpc.WithPort(config.GetStateServerPort()),
-	//	prpc.WithWeight(config.GetStateRPCWeight()),
-	//)
-	//s.RegisterService(func(server *grpc.Server) {
-	//	service.RegisterStateServer(server, &service.Service{CmdChannel: cmdChannel})
-	//})
-	//// init rpc client
-	//client.Init()
-	//// init timingWheel
-	//InitTimer()
-	//// start cmd handler
-	//go cmdHandler()
 	logger.CtxInfof(ctx, "[state] serviceName:%s Addr:%s:%d weight:%d", config.GetStateServiceName(), config.GetStateServiceAddr(), config.GetStateServerPort(), config.GetStateRPCWeight())
 	s.Start(ctx)
 }
 
 // 消费信令通道，识别gateway与state server之间的协议路由
 func cmdHandler() {
-	for cmdCtx := range cmdChannel {
+	for cmdCtx := range cs.server.CmdChannel {
 		switch cmdCtx.Cmd {
 		case service.CancelConnCmd:
 			logger.CtxInfof(*cmdCtx.Ctx, "cancelConn endpoint:%s, fd:%d, data:%+v", cmdCtx.Endpoint, cmdCtx.ConnID, cmdCtx.PayLoad)
@@ -192,15 +174,6 @@ func ackMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 		return
 	}
 	cs.ackLastMsg(*cmdCtx.Ctx, ackMsg.ConnID, ackMsg.SessionID, ackMsg.MsgID)
-	//if data, ok := connToStateTable.Load(ackMsg.ConnID); ok {
-	//	state, _ := data.(*connState)
-	//	state.Lock()
-	//	defer state.Unlock()
-	//	if state.msgTimer != nil {
-	//		state.msgTimer.Stop()
-	//		state.msgTimer = nil
-	//	}
-	//}
 }
 
 // 处理上行消息，并进行消息可靠性检查
@@ -217,39 +190,6 @@ func upMsgHandler(cmdCtx *service.CmdContext, msgCmd *message.MsgCmd) {
 		// TODO 这里应该调用业务层的代码
 		pushMsg(*cmdCtx.Ctx, cmdCtx.ConnID, cs.msgID, 0, upMsg.UPMsgBody)
 	}
-
-	//if data, ok := connToStateTable.Load(upMsg.Head.ConnID); ok {
-	//	state, _ := data.(*connState)
-	//	if !state.checkUPMsg(upMsg.Head.ClientID) {
-	//		// todo 如果没有通过检查，当作先直接忽略即可
-	//		return
-	//	}
-	//	// 调用下游业务层rpc，只有当rpc回复成功后才能更新max_clientID
-	//	// 这里先假设成功
-	//	state.addMaxClientID()
-	//	state.msgID++
-	//	sendAckMsg(message.CmdType_UP, upMsg.Head.ConnID, upMsg.Head.ClientID, 0, "ok")
-	//
-	//	// todo 先在这里push消息
-	//	pushMsg := &message.PushMsg{
-	//		MsgID:   state.msgID,
-	//		Content: upMsg.UPMsgBody,
-	//	}
-	//	pData, err := proto.Marshal(pushMsg)
-	//	if err != nil {
-	//		logger.CtxErrorf(*cmdCtx.Ctx, "upMsgHandler Marshal pushMsg err=%v, pData=%v", err.Error(), string(pData))
-	//		return
-	//	}
-	//	sendMsg(upMsg.Head.ConnID, message.CmdType_Push, pData)
-	//	if state.msgTimer != nil {
-	//		state.msgTimer.Stop()
-	//	}
-	//	// create pushMsg timer
-	//	t := AfterFunc(100*time.Millisecond, func() {
-	//		rePush(cmdCtx.ConnID, pData)
-	//	})
-	//	state.msgTimer = t
-	//}
 }
 
 func pushMsg(ctx context.Context, connID, sessionID, msgID uint64, data []byte) {

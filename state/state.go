@@ -10,12 +10,7 @@ import (
 	"github.com/hardcore-os/plato/state/rpc/client"
 	"sync"
 	"time"
-
-	"github.com/hardcore-os/plato/state/rpc/service"
 )
-
-var cmdChannel chan *service.CmdContext
-var connToStateTable sync.Map
 
 type connState struct {
 	sync.RWMutex

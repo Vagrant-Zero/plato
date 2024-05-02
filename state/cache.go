@@ -47,6 +47,7 @@ func (cs *cacheState) initLoginSlot(ctx context.Context) error {
 			// 这里可以使用lua脚本进行批处理
 			loginSlot, err := cache.SmembersStrSlice(ctx, loginSlotKey)
 			if err != nil {
+				logger.CtxErrorf(ctx, "loginSlotKey=%v, err=%v", loginSlotKey, err)
 				panic(err)
 			}
 			for _, mate := range loginSlot {

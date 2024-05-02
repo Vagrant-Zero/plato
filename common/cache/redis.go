@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"github.com/bytedance/gopkg/util/logger"
 	"time"
 
 	"github.com/hardcore-os/plato/common/config"
@@ -22,6 +23,7 @@ func InitRedis(ctx context.Context) {
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		panic(err)
 	}
+	logger.CtxInfof(ctx, "init redis success")
 	initLuaScript(ctx)
 }
 func GetBytes(ctx context.Context, key string) ([]byte, error) {
