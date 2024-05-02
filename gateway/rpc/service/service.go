@@ -5,6 +5,8 @@ import "context"
 const (
 	DelConnCmd = 1 // DelConn
 	PushCmd    = 2 //push
+
+	successRespMsg = "success"
 )
 
 type CmdContext struct {
@@ -28,7 +30,7 @@ func (s *Service) DelConn(ctx context.Context, gr *GatewayRequest) (*GatewayResp
 	}
 	return &GatewayResponse{
 		Code: 0,
-		Msg:  "success",
+		Msg:  successRespMsg,
 	}, nil
 }
 
@@ -42,6 +44,6 @@ func (s *Service) Push(ctx context.Context, gr *GatewayRequest) (*GatewayRespons
 	}
 	return &GatewayResponse{
 		Code: 0,
-		Msg:  "success",
+		Msg:  successRespMsg,
 	}, nil
 }

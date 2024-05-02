@@ -49,7 +49,7 @@ func (s *Service) SendMsg(ctx context.Context, sr *StateRequest) (*StateResponse
 		PayLoad:  sr.GetData(),
 	}
 
-	logger.CtxInfof(ctx, "[message] sendMsg to channel ok")
+	logger.CtxInfof(ctx, "[message] sendMsg, connID=%v, channel = %d", sr.GetConnID(), len(s.CmdChannel))
 
 	return &StateResponse{
 		Code: 0,

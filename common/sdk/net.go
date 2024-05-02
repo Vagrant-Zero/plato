@@ -66,7 +66,10 @@ func handlePushMsg(c *connect, data []byte) *Message {
 		ConnID: c.connID,
 	}
 	ackData, _ := proto.Marshal(ackMsg)
-	c.send(message.CmdType_ACK, ackData)
+	err := c.send(message.CmdType_ACK, ackData)
+	if err != nil {
+		fmt.Printf("[chat] send push msg failed, pushMsg = %+v, err=%v\n", msg, err)
+	}
 	return msg
 }
 
@@ -83,7 +86,7 @@ func (c *connect) reConn() {
 	c.conn = conn
 }
 
-func (c *connect) send(ty message.CmdType, payload []byte) {
+func (c *connect) send(ty message.CmdType, payload []byte) error {
 	// 直接发送给接收方
 	msgCmd := message.MsgCmd{
 		Type:    ty,
@@ -92,13 +95,14 @@ func (c *connect) send(ty message.CmdType, payload []byte) {
 	msg, err := proto.Marshal(&msgCmd)
 	if err != nil {
 		fmt.Printf("[connect] send marshal msg failed, err=%v, type=%v, payload=%v\n", err, ty, string(payload))
-		return
+		return err
 	}
 	dataPgk := tcp.DataPgk{
 		Len:  uint32(len(msg)),
 		Data: msg,
 	}
-	c.conn.Write(dataPgk.Marshal())
+	_, err = c.conn.Write(dataPgk.Marshal())
+	return err
 }
 
 func (c *connect) recv() <-chan *Message {

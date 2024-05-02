@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"github.com/hardcore-os/plato/common/config"
 	"github.com/hardcore-os/plato/common/prpc"
 	"github.com/hardcore-os/plato/state/rpc/service"
@@ -22,6 +23,10 @@ func initStateClient() {
 		if err != nil {
 			panic(err)
 		}
-		stateClient = service.NewStateClient(pCli.Conn())
+		cli, err := pCli.DialByEndPoint(config.GetGatewayStateServerEndPoint())
+		if err != nil {
+			panic(fmt.Sprintf("gateway.state client DialByEndPoint fialed, err=%v", err))
+		}
+		stateClient = service.NewStateClient(cli)
 	})
 }

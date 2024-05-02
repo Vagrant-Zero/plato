@@ -55,15 +55,27 @@ func NewChat(ip net.IP, port int, nick, userID, sessionID string) *Chat {
 
 func (chat *Chat) Send(msg *Message) {
 	data, _ := json.Marshal(msg)
+	key := fmt.Sprintf("%d", chat.conn.connID)
 	upMsg := &message.UPMsg{
 		Head: &message.UPMsgHead{
-			ClientID: chat.getClientID(msg.Session),
+			ClientID: chat.getClientID(key),
 			ConnID:   chat.conn.connID,
 		},
 		UPMsgBody: data,
 	}
 	payload, _ := proto.Marshal(upMsg)
-	chat.conn.send(message.CmdType_UP, payload)
+	err := chat.conn.send(message.CmdType_UP, payload)
+	if err != nil {
+		fmt.Printf("[chat] send up msg failed, err=%v\n", err)
+	}
+}
+
+func (chat *Chat) GetCurClientID() uint64 {
+	key := fmt.Sprintf("%d", chat.conn.connID)
+	if id, ok := chat.MsgClientIDTable[key]; ok {
+		return id
+	}
+	return 0
 }
 
 // Close chat
@@ -132,7 +144,10 @@ func (chat *Chat) login() {
 		fmt.Printf("[chat] login, marshal msg failed, err=%v, loginMsg.Head=%+v, loginMsg.Body=%+v\n", err, loginMsg.Head, loginMsg.LoginMsgBody)
 		return
 	}
-	chat.conn.send(message.CmdType_Login, payload)
+	err = chat.conn.send(message.CmdType_Login, payload)
+	if err != nil {
+		fmt.Printf("[chat] send login msg failed, err=%v\n", err)
+	}
 }
 
 func (chat *Chat) reConn() {
@@ -146,12 +161,19 @@ func (chat *Chat) reConn() {
 		fmt.Printf("[chat] login, marshal msg failed, err=%v, ReConnMsg.Head=%+v, ReConnMsg.Body=%+v\n", err, reConn.Head, reConn.ReConnMsgBody)
 		return
 	}
-	chat.conn.send(message.CmdType_ReConn, payload)
-
+	err = chat.conn.send(message.CmdType_ReConn, payload)
+	if err != nil {
+		fmt.Printf("[chat] send reconn msg failed, err=%v\n", err)
+	}
 }
 
 func (chat *Chat) heartbeat() {
 	tc := time.NewTicker(1 * time.Second)
+	defer func() {
+		chat.heartbeat()
+	}()
+
+loop:
 	for {
 		select {
 		case <-chat.closeChan:
@@ -163,9 +185,13 @@ func (chat *Chat) heartbeat() {
 			payload, err := proto.Marshal(&heartbeat)
 			if err != nil {
 				fmt.Printf("[chat] heartbeat, marshal msg failed, err=%v\n", err)
-				return
+				goto loop
 			}
-			chat.conn.send(message.CmdType_Heartbeat, payload)
+			err = chat.conn.send(message.CmdType_Heartbeat, payload)
+			if err != nil {
+				fmt.Printf("[chat] heartbeat, send heartbeat msg failed, err=%v\n", err)
+				goto loop
+			}
 		}
 	}
 }
@@ -177,7 +203,6 @@ func (chat *Chat) getClientID(sessionID string) uint64 {
 	if id, ok := chat.MsgClientIDTable[sessionID]; ok {
 		res = id
 	}
-	res++
-	chat.MsgClientIDTable[sessionID] = res
+	chat.MsgClientIDTable[sessionID] = res + 1
 	return res
 }

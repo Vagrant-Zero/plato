@@ -27,6 +27,10 @@ func GetServicePathForIPConf() string {
 	return viper.GetString("ip_conf.service_path")
 }
 
+func GetCacheRedisEndpointList() []string {
+	return viper.GetStringSlice("cache.redis.endpoints")
+}
+
 // IsDebug 判断是不是debug环境
 func IsDebug() bool {
 	env := viper.GetString("global.env")
