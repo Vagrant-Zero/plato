@@ -4,7 +4,7 @@ services:
   plato-etcd:
     image: bitnami/etcd:latest
     environment:
-      - ETCD_ROOT_PASSWORD=yyy1526510
+      - ETCD_ROOT_PASSWORD=123456
     ports:
       - '2379:2379'
     networks:
