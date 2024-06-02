@@ -2,19 +2,19 @@ global:
   env: debug
 discovery:
   endpoints:
-    - 192.168.10.102:2379 # 192.168.31.192:2379
+    - plato-etcd:2379 # 192.168.31.192:2379
   timeout: 5
 cache:
   redis:
     endpoints:
-      - 192.168.10.102:6379 # 192.168.31.192:2379
+      - plato-redis:6379 # 192.168.31.192:2379
 ip_conf:
   service_path: /plato/ip_dispatcher
 prpc:
   discov:
     name: etcd
     endpoints:
-      - 192.168.10.102:2379 # 192.168.31.192:2379
+      - plato-etcd:2379 # 192.168.31.192:2379
   trace:
     enable: true
     url: http://127.0.0.1:14268/api/traces
@@ -22,7 +22,7 @@ prpc:
     sampler: 1.0
 gateway:
   service_name: "plato.access.gateway"
-  service_addr: "127.0.0.1"
+  service_addr: "gateway" #127.0.0.1
   tcp_max_num: 70000
   epoll_channel_num: 100
   epoll_num: 8
@@ -32,12 +32,12 @@ gateway:
   worker_pool_num: 1024
   cmd_channel_num: 2048
   weight: 100
-  state_server_endpoint: "127.0.0.1:8902"
+  state_server_endpoint: "state:8902" #127.0.0.1
 state:
   service_name: "plato.access.state"
-  servide_addr: "127.0.0.1"
+  servide_addr: "state" #127.0.0.1
   cmd_channel_num: 2048
   server_port: 8902
   weight: 100
   conn_state_slot_range: "0,512"
-  gateway_server_endpoint: "127.0.0.1:8901"
+  gateway_server_endpoint: "gateway:8901" #127.0.0.1

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  plato-etcd:
+    image: bitnami/etcd:latest
+    environment:
+      - ETCD_ROOT_PASSWORD=yyy1526510
+    ports:
+      - '2379:2379'
+    networks:
+      - plato-network
+
+  plato-redis:
+    image: redis:latest
+    ports:
+      - '6379:6379'
+    networks:
+      - plato-network
+
+  gateway:
+    image: plato
+    ports:
+      - '8900:8900'
+      - '8901:8901'
+    networks:
+      - plato-network
+    command: sh -c "/app/plato gateway"
+
+  state:
+    image: plato
+    ports:
+      - '8902:8902'
+    networks:
+      - plato-network
+    command: sh -c "/app/plato state"
+
+networks:
+  plato-network:
+    driver: bridge
