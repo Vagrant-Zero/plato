@@ -47,7 +47,9 @@ func startRPCServer() {
 		prpc.WithPort(config.GetGatewayRPCServerPort()),
 		prpc.WithWeight(config.GetGatewayRPCWeight()),
 	)
+
 	s.RegisterService(func(server *grpc.Server) {
+		// 指定gateway server的实现类（之前都是接口，这里明确告诉grpc，该接口由哪个实现类实现，后续接收到grpc时，由该实现类接收请求）
 		service.RegisterGatewayServer(server, &service.Service{CmdChannel: cmdChannel})
 	})
 	// start client
@@ -114,6 +116,7 @@ func sendMsgByCmd(cmd *service.CmdContext) {
 	if cmdChannel == nil {
 		return
 	}
+	// 从全局epoll池中根据 connID 获取 conn
 	if connPtr, ok := ep.tables.Load(cmd.ConnID); ok {
 		conn, _ := connPtr.(*connection)
 		dp := tcp.DataPgk{

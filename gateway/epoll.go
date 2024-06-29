@@ -163,8 +163,11 @@ func (epl *epoller) add(conn *connection) error {
 	if err != nil {
 		return err
 	}
+	// epoll实例存储 fd -> conn 的映射
 	epl.fdToConnTable.Store(conn.fd, conn)
+	// 全局epoll池存储 connID -> conn的映射
 	ep.tables.Store(conn.id, conn)
+	// 每个连接绑定所属的epoll实例
 	conn.BindEpoller(epl)
 	return nil
 }
@@ -189,6 +192,8 @@ func (epl *epoller) wait(millSec int) ([]*connection, error) {
 	}
 	var connections []*connection
 	for i := 0; i < n; i++ {
+		// 单个epoll实例是根据fd来反查conn的
+		// 全局的conn是根据epoll池中的connID来查询的
 		if conn, ok := epl.fdToConnTable.Load(int(events[i].Fd)); ok {
 			connections = append(connections, conn.(*connection))
 		}
